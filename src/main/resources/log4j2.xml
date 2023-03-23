@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d %5p [%c] %m%n" />
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="waterworks" level="DEBUG" additivity="false">
+            <AppenderRef ref="console" />
+        </Logger>
+        <Logger name="org.waterworks" level="DEBUG" additivity="false">
+            <AppenderRef ref="console" />
+        </Logger>
+
+        <Logger name="org.springframework" level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+        </Logger>
+
+        <!--  SQL 쿼리 문장 -->
+        <logger name="jdbc" level="OFF"/>
+        <logger name="jdbc.sqlonly" level="OFF"/>
+        <logger name="jdbc.sqltiming" level="info"/>
+        <logger name="jdbc.resultsettable" level="off"/>
+        <logger name="jdbc.audit" level="OFF"/>
+        <logger name="jdbc.resultset" level="OFF"/>
+        <logger name="jdbc.connection" level="OFF"/>
+  <!--      <Logger name="java.sql" level="ERROR" additivity="false">
+            <AppenderRef ref="console" />
+        </Logger>
+
+        <Logger name="jdbc.sqlonly" level="info" additivity="false">
+            <AppenderRef ref="console" />
+        </Logger>-->
+
+        <!-- log SQL with timing information, post execution -->
+<!--
+        <Logger name="jdbc.sqltiming" level="INFO" additivity="false">
+            <AppenderRef ref="console" />
+        </Logger>
+-->
+
+   <!--     <Logger name="jdbc.audit" level="WARN" additivity="false">
+            <appender-ref ref="console"/>
+        </Logger>-->
+
+   <!--     <Logger name="jdbc.resultset" level="FATAL" additivity="false">
+            <level value="fatal" />
+            <appender-ref ref="file"/>
+        </Logger>-->
+
+
+      <!--  <Logger name="jdbc.resultSettable" level="INFO" additivity="false">
+            <level value="off" />
+            <appender-ref ref="console"/>
+        </Logger>-->
+
+
+        <Root level="INFO">
+            <AppenderRef ref="console" />
+        </Root>
+    </Loggers>
+</Configuration>
