@@ -1,17 +1,19 @@
 package org.kwater.service.aio;
 
 import org.kwater.domain.aio.AiProcessInitDTO;
-import org.kwater.persistence.mybatis.aio.AiReceivingInitDAO;
+import org.kwater.persistence.mybatis.aio.DashboardRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DatabaseService {
-    private AiReceivingInitDAO aiReceivingInit;
-    public DatabaseService(AiReceivingInitDAO aiReceivingInit) {
-    }
+    @Autowired
+    private DashboardRepository aiReceivingInit;
+//    public DatabaseService(AiReceivingInitRepository aiReceivingInit) {
+//    }
 
     public AiProcessInitDTO getAiReceivingInit(String item)
     {
-        return aiReceivingInit.select(item);
+        return aiReceivingInit.getAiReceivingInit(item);
     }
 }
