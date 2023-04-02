@@ -1,3 +1,6 @@
+CREATE user 'water'@'localhost' IDENTIFIED BY 'works'
+GRANT ALL PRIVILEGES ON waterworks.* TO 'water'@'localhost';
+FLUSH PRIVILEGES;
 -- 테이블 waio.coagulants_simulation 구조 내보내기
 CREATE TABLE IF NOT EXISTS `coagulants_simulation` (
   `simulation_index` int(11) NOT NULL AUTO_INCREMENT,
