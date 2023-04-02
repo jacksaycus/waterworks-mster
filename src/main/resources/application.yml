@@ -1,0 +1,72 @@
+spring:
+  datasource:
+      url: jdbc:log4jdbc:mariadb://localhost:3306/waterworks?autoReconnect=true&useSSL=false&rewriteBatchedStatements=true
+      username: water
+      password: works
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+
+#  jpa:
+#    open-in-view: false
+#    show-sql: true
+#    generate-ddl: true
+#    hibernate:
+#      ddl-auto: create-drop
+#  datasource:
+#    url: jdbc:mariadb://localhost:3306/waterworks?autoReconnect=true&useSSL=false&rewriteBatchedStatements=true
+#    username: water
+#    password: works
+#    driver-class-name: org.mariadb.jdbc.Driver
+#    schema: classpath:init-schema.sql
+#    initialization-mode: always
+#  data:
+#    rest:
+#      basePath: /api
+#  datasource:
+#   url: jdbc:h2:file:/testdb
+#  jpa:
+#    show-sql: true
+#  h2:
+#    console:
+#      enabled: true
+#      path: /h2-console
+
+server:
+  port: 8081
+
+logging:
+  level:
+    org.kwater.waterworks: DEBUG
+
+properties:
+  delegate:
+    address: 220.123.184.52
+    version: "@project.version@"
+  authentication:
+    expiration: 30  # minute, minimum:1
+    key: waio
+    resource-monitor-token: resource-monitoring
+    iwater-token: iWater
+    internal-token: internal
+  check-process:
+    period: 600000  # millisecond, 1minute = 60000
+  scada-check:
+    period: 60000   # millisecond, 1minute = 60000
+  analysis-check:
+    period: 60000   # millisecond, 1minute = 60000
+  daq_check:
+    period: 60000   # millisecond, 1minute = 60000
+  visualize-check:
+    period: 60000   # millisecond, 1minute = 60000
+    address: 220.123.184.53
+    port: 18081
+  system-check:
+    period: 60000     # millisecond, 1minute = 60000
+    reference: 300000 # millisecond, 1minute = 60000
+  control-check:
+    period: 30000   # millisecond, 1minute = 60000
+  alarm-check:
+    period: 30000   # millisecond, 1minute = 60000
+  storage: 36       # monthly, Save Database Table record storage duration.
+  receiving-data: 2 # monthly, Save Database Table record storage duration.
+  algorithm-check:
+    period: 60000
