@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wapplab.pms.repository.MotorMapper">
+
+  <!-- motor_01 ~ motor_04 평택-->
+  <!--   motor_05 : 송산 2번-->
+  <!--   motor_06 : 송산 1번-->
+
+  <!--  송수펌프모터 설비별 알람-->
+  <!--  알람이 있는 설비만 검색(위의 motor id 참조), 검색안된 설비는 정상-->
+  <select id="alarm" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           m.moter_id
+         , TRUE as Alram
+    FROM
+         tb_ai_diag_moter as m
+           LEFT JOIN tb_ai_diag_pump as p
+               on
+                   m.moter_id = p.pump_id
+                       and
+                   m.acq_date = p.acq_date
+    WHERE
+          (
+              m.unbalance_alarm = 1
+                  or
+              m.misalignment_alarm = 1
+                  or
+              m.rotor_alarm = 1
+                  or
+              m.de_bpfo_alarm = 1
+                  or
+              m.DE_BPFI_alarm = 1
+                  or
+              m.DE_BSF_alarm = 1
+                  or
+              m.DE_FTF_alarm = 1
+                  or
+              m.NDE_BPFO_alarm = 1
+                  or
+              m.NDE_BPFI_alarm = 1
+                  or
+              m.NDE_BSF_alarm = 1
+                  or
+              m.NDE_FTF_alarm = 1
+                  or
+              p.impeller_alarm = 1
+                  or
+              p.cavitation_alarm = 1
+                  or
+              p.de_bpfo_alarm = 1
+                  or
+              p.DE_BPFI_alarm = 1
+                  or
+              p.DE_BSF_alarm = 1
+                  or
+              p.DE_FTF_alarm = 1
+                  or
+              p.NDE_BPFO_alarm = 1
+                  or
+              p.NDE_BPFI_alarm = 1
+                  or
+              p.NDE_BSF_alarm = 1
+                  or
+              p.NDE_FTF_alarm
+          )
+                and
+          m.acq_date >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+    ORDER BY m.acq_date DESC;
+    ]]>
+  </select>
+<!--   가동대수-->
+  <select id="count" resultType="java.util.HashMap">
+    SELECT
+           count(*) as eq_no
+    FROM
+         tb_pump_scada
+    WHERE
+          acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_pump_scada
+                            WHERE acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 1
+                        , 1)
+                        AND eq_on = TRUE
+  </select>
+
+
+
+  <!--  가동중 조회-->
+  <!--  pump_scada_01 ~ pump_scada_04 평택-->
+  <!--  pump_scada_05 : 송산 1번-->
+  <!--  pump_scada_06 : 송산 2번-->
+  <select id="runningInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           pump_scada_id
+         , eq_on
+    FROM
+         tb_pump_scada
+    WHERE acq_date =
+          (
+              SELECT
+                  acq_date
+             FROM
+                 tb_pump_scada
+             GROUP BY
+                      acq_date
+             ORDER BY acq_date DESC LIMIT 1
+          , 1)
+    ]]>
+  </select>
+
+<!--  분포도-->
+<!--  pump_scada_01 평택-->
+<!--  pump_scada_05 송산-->
+  <select id="distribution" resultType="java.util.HashMap">
+  <![CDATA[
+    SELECT
+           pump_scada_id
+         , acq_date
+         , flow_rate / 60 as flow_rate
+         , pressure * 10 as pressure
+    FROM
+         tb_pump_scada
+    WHERE
+          acq_date >= #{startDate}
+            and
+          acq_date <= #{endDate}
+            and
+          pump_scada_id = #{id}
+  ]]>
+  </select>
+
+  <!--  총진동량 조회 한개씩 조회-->
+  <select id="vibrationFindById" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           m.moter_id
+           , m.acq_date
+           , m.DE_rms_amp  as motor_de_rms_amp
+           , m.NDE_rms_amp as motor_nde_rms_amp
+           , p.DE_rms_amp  as pump_de_rms_amp
+           , p.NDE_rms_amp as pump_nde_rms_amp
+    FROM
+         tb_ai_diag_moter as m
+           LEFT JOIN tb_ai_diag_pump as p
+               on
+                   m.moter_id = p.pump_id
+                       and
+                   m.acq_date = p.acq_date
+    WHERE
+          m.acq_date >= #{startDate}
+            and
+          m.acq_date <= #{endDate}
+            and
+          m.moter_id = #{id}
+    ORDER BY m.acq_date ASC
+    ]]>
+  </select>
+
+  <!--  총진동량 조회 모든 모터 한번에 조회 - 그래프-->
+  <select id="vibrationGraph" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           m.moter_id
+           , m.acq_date
+           , m.DE_rms_amp  as motor_de_rms_amp
+           , m.NDE_rms_amp as motor_nde_rms_amp
+           , p.DE_rms_amp  as pump_de_rms_amp
+           , p.NDE_rms_amp as pump_nde_rms_amp
+    FROM
+         tb_ai_diag_moter as m
+           LEFT JOIN
+             tb_ai_diag_pump as p
+                 on
+                     m.moter_id = p.pump_id
+                         and
+                     m.acq_date = p.acq_date
+    WHERE
+          m.acq_date >= #{startDate}
+      and
+          m.acq_date <= #{endDate}
+    ORDER BY m.acq_date ASC
+    ]]>
+  </select>
+
+<!--    총진동량 조회(날짜지정 안했을 때 현재시간부터 7일이전) 모든 모터 한번에 조회 - 값-->
+<!--    motor_de_amp : 모터 부하-->
+<!--    motor_nde_amp : 모터 반부하-->
+<!--    pump_de_amp : 펌프 부하-->
+<!--    pump_nde_amp : 펌프 반부하-->
+  <select id="vibrationValues" resultType="java.util.HashMap">
+    SELECT
+           m.moter_id
+         , m.acq_date
+         , m.DE_rms_amp as motor_de_rms_amp
+         , m.NDE_rms_amp as motor_nde_rms_amp
+         , p.DE_rms_amp as pump_de_rms_amp
+         , p.NDE_rms_amp as pump_nde_rms_amp
+    FROM
+         tb_ai_diag_moter as m
+           LEFT JOIN
+             tb_ai_diag_pump as p
+                 on m.moter_id = p.pump_id
+                        and
+                    m.acq_date = p.acq_date
+    WHERE m.acq_date >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+    ORDER BY m.acq_date ASC
+  </select>
+
+  <!--  상세화면-->
+  <!--  알람-->
+  <!--  상태정보는 해당 쿼리를 조회했을 때 조회가 된다면 이상이라는 뜻으로 화면에 표시해줘야 한다.-->
+  <select id="alarmDetails" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+            m.moter_id as motor_id
+           , m.unbalance_alarm as motor_unbalance_alram
+           , m.misalignment_alarm as motor_misalignment_alarm
+           , m.rotor_alarm as motor_rotor_alarm
+           , m.de_bpfo_alarm as motor_de_bpfo_alarm
+           , m.DE_BPFI_alarm as motor_de_bpfi_alarm
+           , m.DE_BSF_alarm as motor_de_bsf_alarm
+           , m.DE_FTF_alarm as motor_de_ftf_alarm
+           , m.NDE_BPFO_alarm as motor_nde_bpfo_alarm
+           , m.NDE_BPFI_alarm as motor_nde_bpfi_alarm
+           , m.NDE_BSF_alarm as motor_nde_bsf_alarm
+           , m.NDE_FTF_alarm as motor_nde_ftf_alarm
+           , p.impeller_alarm as pump_impeller_alarm
+           , p.cavitation_alarm as pump_cavitation_alarm
+           , p.de_bpfo_alarm as pump_de_bpfo_alarm
+           , p.DE_BPFI_alarm as pump_de_bpfi_alram
+           , p.DE_BSF_alarm as pump_de_bsf_alarm
+           , p.DE_FTF_alarm as pump_de_ftf_alarm
+           , p.NDE_BPFO_alarm as pump_nde_bpfo_alram
+           , p.NDE_BPFI_alarm as pump_nde_bpfi_alarm
+           , p.NDE_BSF_alarm as pump_nde_bsf_alarm
+           , p.NDE_FTF_alarm as pump_nde_ftf_alarm
+           , m.acq_date as acq_date
+    FROM
+         tb_ai_diag_moter as m
+           LEFT JOIN
+             tb_ai_diag_pump as p
+                 on
+                     m.moter_id = p.pump_id
+                         and
+                     m.acq_date = p.acq_date
+    WHERE
+          (
+              m.unbalance_alarm = 1
+                  or m.misalignment_alarm = 1
+                  or m.rotor_alarm = 1
+                  or m.de_bpfo_alarm =1
+                  or m.DE_BPFI_alarm = 1
+                  or m.DE_BSF_alarm = 1
+                  or m.DE_FTF_alarm = 1
+                  or m.NDE_BPFO_alarm = 1
+                  or m.NDE_BPFI_alarm = 1
+                  or m.NDE_BSF_alarm = 1
+                  or m.NDE_FTF_alarm = 1
+                  or p.impeller_alarm = 1
+                  or p.cavitation_alarm = 1
+                  or p.de_bpfo_alarm = 1
+                  or p.DE_BPFI_alarm = 1
+                  or p.DE_BSF_alarm = 1
+                  or p.DE_FTF_alarm = 1
+                  or p.NDE_BPFO_alarm = 1
+                  or p.NDE_BPFI_alarm = 1
+                  or p.NDE_BSF_alarm = 1
+                  or p.NDE_FTF_alarm
+          )
+      and
+          m.acq_date >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+    ORDER BY m.acq_date DESC
+    ]]>
+  </select>
+
+  <!--  상태정보 - 토출, 흡입압력-->
+  <!--  pump_scada_01 ~ pump_scada_04 평택-->
+  <!--  pump_scada_05 : 송산 1번-->
+  <!--  pump_scada_06 : 송산 2번-->
+  <!--  discharge_pressure : 토출-->
+  <!--  suction_pressure : 흡입-->
+  <select id="scadaInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           pump_scada_id
+         , discharge_pressure
+         , suction_pressure
+         , eq_on
+    FROM
+         tb_pump_scada
+    WHERE
+          acq_date =
+          (
+              SELECT
+                     acq_date
+              FROM
+                   tb_pump_scada
+              GROUP BY
+                       acq_date
+              ORDER BY
+                       acq_date DESC LIMIT 1
+        , 1)
+    ]]>
+  </select>
+
+<!--  상태정보 - 유량, 압력-->
+<!--  pump_scada_01 : 평택-->
+<!--  flow_rate : 토출-->
+<!--  pressure : 흡입-->
+  <select id="flowPressure" parameterType="java.lang.String" resultType="java.util.HashMap">
+    SELECT
+            flow_rate
+         ,  pressure
+    FROM
+            tb_pump_scada
+    WHERE
+          acq_date =
+          (
+            SELECT
+                acq_date
+            FROM
+                tb_pump_scada
+            WHERE
+                acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+            GROUP BY
+                acq_date
+            ORDER BY
+                acq_date DESC LIMIT 1
+          , 1)
+        AND pump_scada_id = #{id}
+  </select>
+
+  <!--  모터 상세 데이터-->
+  <!--  모터 부하 총진동량, 모터 반부하 총진동량 ~ 펌프 반부하 총진동량-->
+  <select id="motorDetails" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           m.moter_id
+         , m.DE_rms_amp as motor_de_rms_amp
+         , m.NDE_rms_amp as motor_nde_rms_amp
+         , m.misalignment_amp as motor_misalignment_amp
+         , m.unbalance_amp as motor_unbalance_amp
+         , m.rotor_amp as motor_rotor_amp
+         , m.de_amp as motor_de_amp
+         , m.NDE_amp as motor_nde_amp
+         , p.DE_amp as pump_de_amp
+         , p.NDE_amp as pump_nde_amp
+         , p.cavitation_amp as pump_cavatation_amp
+         , p.impeller_amp as pump_impeller_amp
+         , p.DE_rms_amp as pump_de_rms_amp
+         , p.NDE_rms_amp as pump_nde_rms_amp
+         , m.acq_date as acq_date
+    FROM
+         tb_ai_diag_moter as m
+           LEFT JOIN
+             tb_ai_diag_pump as p
+                 on m.moter_id = p.pump_id
+                        and m.acq_date = p.acq_date
+    WHERE
+      m.acq_date >= #{startDate}
+      and
+      m.acq_date <= #{endDate}
+      and
+      m.moter_id = #{id}
+    ORDER BY m.acq_date ASC
+    ]]>
+  </select>
+
+  <!--  모터 상세 데이터-->
+  <!--  모터 베어링 온도-->
+  <select id="bearingTempInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           pump_scada_id
+           , acq_date
+           , M_DE_bearing_temp
+           , M_NDE_bearing_temp
+           , P_DE_bearing_temp
+           , P_NDE_bearing_temp
+    FROM
+         tb_diag_moter_pump as m
+    WHERE
+        m.acq_date >= #{startDate}
+      and
+        m.acq_date <= #{endDate}
+      and
+        m.pump_scada_id = #{id}
+    ORDER BY acq_date ASC
+    ]]>
+  </select>
+
+  <!--  모터 상세 데이터-->
+  <!--  권선 온도-->
+  <select id="windingTempInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT pump_scada_id
+         , acq_date
+         , winding_tempR
+         , winding_tempS
+         , winding_tempT
+    FROM tb_diag_moter_pump_winding as m
+    WHERE
+        m.acq_date >= #{startDate}
+      and
+        m.acq_date <= #{endDate}
+      and
+        m.pump_scada_id = #{id}
+    ORDER BY acq_date ASC
+    ]]>
+  </select>
+</mapper>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wapplab.pms.repository.AgglomerateMapper">
+
+<!--  agglomerate_01-->
+<!--  agglomerate_02-->
+<!--  agglomerate_03-->
+<!--  agglomerate_04-->
+<!--  agglomerate_05-->
+<!--  agglomerate_06-->
+<!--  agglomerate_07-->
+<!--  agglomerate_08-->
+<!--  설비별 알람-->
+<!--  알람이 있는 설비만 검색(위의 agglomerate_01 id 참조), 검색안된 설비는 정상-->
+  <select id="alram" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           agglomerate_id
+         , TRUE as Alram
+    FROM
+         tb_diag_agglomerate
+    WHERE
+          (
+                voltage_unbalance_alarm = 1
+            OR  voltage_diff_alarm = 1
+            OR  overcurrent_alarm = 1
+            OR  current_unbalance_alarm = 1
+          )
+    AND
+          acq_date >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    ORDER BY
+             acq_date DESC;
+    ]]>
+  </select>
+
+<!--  가동중, 운영현황 조회, 상태정보-->
+<!--  0 보다 크면 해당 응집지가 ON 상태-->
+  <select id="agglomerateInfo" parameterType="java.lang.String" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           count(eq_on) as eq_on
+    FROM
+         tb_agglomerate_eq
+    WHERE
+            acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_agglomerate_eq
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 1
+                        , 1)
+            AND
+            agglomerate_eq_id like CONCAT(#{id}, '%')
+            AND
+            eq_on = TRUE
+    ]]>
+  </select>
+
+<!--  가동대수-->
+  <select id="agglomerateCount" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           count(eq_on) as eq_on
+    FROM
+         tb_agglomerate_eq
+    WHERE
+          acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_agglomerate_eq
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 1
+                        , 1)
+          AND eq_on = TRUE
+    ]]>
+  </select>
+
+<!--  전류 조회-->
+  <select id="currentInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           agglomerate_id
+         , GREATEST
+             (
+                if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)
+             ) as current
+         , acq_date
+    FROM
+        tb_agglomerate
+    WHERE
+        acq_date >= #{startDate} and acq_date <= #{endDate}
+    ]]>
+  </select>
+
+<!--  상세 조회 모든 pac pump-->
+<!--  current_limit : 과전류-->
+<!--  voltage_diff : 전압변동량-->
+<!--  current_unbalance : 전류불평형-->
+<!--  voltage_unbalance : 전압불평형-->
+  <select id="detailInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           agglomerate_id
+         , current_limit
+         , voltage_diff
+         , current_unbalance
+         , voltage_unbalance
+         , acq_date
+    FROM
+         tb_diag_agglomerate
+    WHERE
+          acq_date >= #{startDate}
+      and acq_date <= #{endDate}
+    ]]>
+  </select>
+</mapper>

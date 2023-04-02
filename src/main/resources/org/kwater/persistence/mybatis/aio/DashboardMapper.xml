@@ -4,6 +4,6 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.kwater.persistence.mybatis.aio.DashboardMapper">
     <select id="getAiReceivingInit" resultType="org.kwater.domain.aio.AiProcessInitDTO">
-        SELECT * FROM waio.ai_receiving_init WHERE item = #{item}
+        SELECT * FROM ai_receiving_init WHERE item = #{item}
     </select>
 </mapper>

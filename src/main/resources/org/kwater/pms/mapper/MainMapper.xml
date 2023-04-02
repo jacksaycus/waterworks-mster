@@ -1,0 +1,1481 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wapplab.pms.repository.MainMapper">
+<!--  이상감지 전류데이터(송수쪽은 부분방전크기)-->
+<!--  착수/약품-->
+<!--  water_controll_valve_01-->
+<!--  water_controll_valve_02-->
+<!--  pac_tube_pump_01-->
+<!--  pac_tube_pump_02-->
+<!--  pac_tube_pump_03-->
+<!--  pahcs_tube_pump_01-->
+<!--  pahcs_tube_pump_02-->
+<!--  pahcs_tube_pump_03-->
+  <select id="waterPacAll" resultType="java.util.HashMap">
+    (
+        SELECT
+                water_controll_valve_id as id
+              , electric_current
+              , acq_date
+        FROM
+             tb_water_controll_valve
+        WHERE
+              acq_date =
+                            (
+                                SELECT
+                                       acq_date
+                                FROM
+                                     tb_water_controll_valve
+                                WHERE
+                                      acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                         acq_date
+                                ORDER BY
+                                         acq_date DESC LIMIT 0, 1)
+        ORDER BY
+            acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+              pac_tube_pump_id as id
+              , electric_current
+              , acq_date
+    FROM
+          tb_pac_tube_pump
+    WHERE
+            acq_date =
+                        (
+                            SELECT
+                                    acq_date
+                            FROM
+                                    tb_pac_tube_pump
+                            WHERE
+                                    acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                            GROUP BY
+                                    acq_date
+                            ORDER BY
+                                    acq_date DESC LIMIT 0, 1)
+    ORDER BY
+            acq_date ASC
+    )
+    UNION ALL
+    (
+          SELECT
+                pahcs_tube_pump_id as id
+                , electric_current
+                , acq_date
+          FROM
+                tb_pahcs_tube_pump
+          WHERE
+                  acq_date =
+                                (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_pahcs_tube_pump
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+          ORDER BY
+                    acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+                auto_water_pump_id as id
+              , GREATEST( if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current
+              , acq_date
+        FROM
+              tb_auto_water_pump
+        WHERE
+              acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_auto_water_pump
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC)
+  </select>
+
+<!--  혼화/응집/침전-->
+<!--  rapid_agitator_01-->
+<!--  rapid_agitator_02-->
+<!--  agglomerate_01 : 응집지2-->
+<!--  agglomerate_02 : 응집지3-->
+<!--  agglomerate_03 : 응집지4-->
+<!--  agglomerate_04 : 응집지5-->
+<!--  agglomerate_05 : 응집지6-->
+<!--  agglomerate_06 : 응집지7-->
+<!--  agglomerate_07 : 응집지8-->
+<!--  agglomerate_08 : 응집지9-->
+<!--  sludge_collector_01-->
+<!--  sludge_collector_02-->
+  <select id="rapidAggloSludgeAll" resultType="java.util.HashMap">
+    (SELECT
+            rapid_agitator_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+            , if(s_v_electric_current is not null, s_v_electric_current, 0)
+            , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM
+            tb_rapid_agitator
+     WHERE
+            acq_date =
+                        (
+                            SELECT
+                                    acq_date
+                            FROM
+                                    tb_rapid_agitator
+                            WHERE
+                                    acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                            GROUP BY
+                                    acq_date
+                            ORDER BY
+                                    acq_date DESC LIMIT 0, 1)
+     ORDER BY
+                acq_date ASC
+    )
+    UNION ALL
+    (SELECT agglomerate_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM tb_agglomerate
+     WHERE acq_date = (SELECT acq_date FROM tb_agglomerate WHERE acq_date >= DATE_SUB(NOW()
+         , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+         , 1)
+     ORDER BY acq_date ASC)
+    UNION ALL
+    (SELECT sludge_collector_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM tb_sludge_collector
+     WHERE acq_date = (SELECT acq_date FROM tb_sludge_collector WHERE acq_date >= DATE_SUB(NOW()
+         , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+         , 1)
+     ORDER BY acq_date ASC)
+  </select>
+
+<!--  여과/GAC-->
+<!--  filter_backwash_pump_01-->
+<!--  filter_backwash_pump_02-->
+<!--  filter_backwash_pump_03-->
+<!--  filter_backwash_pump_04-->
+<!--  gac_backwash_pump_01-->
+<!--  gac_backwash_pump_02-->
+<!--  gac_backwash_pump_03-->
+<!--  backwash_blower_01-->
+<!--  backwash_blower_02-->
+  <select id="filterGacAll" resultType="java.util.HashMap">
+    (SELECT filter_backwash_pump_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM tb_filter_backwash_pump
+     WHERE acq_date = (SELECT acq_date FROM tb_filter_backwash_pump WHERE acq_date >= DATE_SUB(NOW()
+         , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+         , 1)
+     ORDER BY acq_date ASC)
+    UNION ALL
+    (SELECT gac_backwash_pump_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM tb_gac_backwash_pump
+     WHERE acq_date = (SELECT acq_date FROM tb_gac_backwash_pump WHERE acq_date >= DATE_SUB(NOW()
+         , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+         , 1)
+     ORDER BY acq_date ASC)
+    UNION ALL
+    (SELECT backwash_blower_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM tb_backwash_blower
+     WHERE acq_date = (SELECT acq_date FROM tb_backwash_blower WHERE acq_date >= DATE_SUB(NOW()
+         , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+         , 1)
+     ORDER BY acq_date ASC)
+  </select>
+
+  <!--  (오존/소독) 오존발생기, 모티브펌프, 냉각수펌프, 차염발생기-->
+  <!--  motif_pump_01-->
+  <!--  motif_pump_02-->
+  <!--  motif_pump_03-->
+  <!--  motif_pump_04-->
+  <!--  cooling_pump_01-->
+  <!--  cooling_pump_02-->
+  <!--  cooling_pump_03-->
+  <!--  cooling_pump_04-->
+  <select id="motifCoolAll" resultType="java.util.HashMap">
+    (SELECT motif_pump_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM tb_motif_pump
+     WHERE acq_date = (SELECT acq_date FROM tb_motif_pump WHERE acq_date >= DATE_SUB(NOW()
+         , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+         , 1)
+     ORDER BY acq_date ASC)
+    UNION ALL
+    (SELECT cooling_pump_id as id,
+            GREATEST(if(r_v_electric_current is not null, r_v_electric_current, 0)
+              , if(s_v_electric_current is not null, s_v_electric_current, 0)
+              , if(t_v_electric_current is not null, t_v_electric_current, 0)) as current, acq_date
+     FROM tb_cooling_pump
+     WHERE acq_date = (SELECT acq_date FROM tb_cooling_pump WHERE acq_date >= DATE_SUB(NOW()
+         , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+         , 1)
+     ORDER BY acq_date ASC)
+  </select>
+
+  <!--  (송수) 기동반, 변압기반, VCB 반-->
+  <!--  pump_board_01-->
+  <!--  pump_board_02-->
+  <!--  pump_board_03-->
+  <!--  pump_board_04-->
+  <!--  transformer_01-->
+  <!--  transformer_02-->
+  <!--  transformer_03-->
+  <!--  transformer_04-->
+  <!--  vcb_01-->
+  <!--  vcb_02-->
+  <!--  vcb_03-->
+  <!--  vcb_04-->
+  <!--  vcb_05-->
+  <!--  vcb_06-->
+  <select id="pumpTransformerVcbAll" resultType="java.util.HashMap">
+    (
+        SELECT
+               pump_board_temp_id as id
+             , dbm_avg
+             , acq_date
+        FROM
+             tb_pump_board_temp
+        WHERE acq_date = (
+                          SELECT
+                                 acq_date
+                          FROM
+                               tb_pump_board_temp
+                          WHERE
+                                acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                          GROUP BY
+                                   acq_date
+                          ORDER BY
+                                   acq_date DESC
+          LIMIT 0
+            , 1)
+         ORDER BY
+                   acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+                transformer_id as id
+                , dbm_avg
+                , acq_date
+        FROM
+              tb_transformer
+        WHERE
+              acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_transformer
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC
+    )
+    UNION ALL
+    (
+          SELECT
+                    vcb_id as id
+                    , dbm_avg
+                    , acq_date
+          FROM
+                tb_vcb
+          WHERE
+                acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_vcb
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+          ORDER BY
+                    acq_date ASC)
+  </select>
+
+  <!--  설비별 알람-->
+  <!--  (착수/약품) 유입밸브, PAC, PAHCS, 급수펌프-->
+  <!--  water_controll_valve_01-->
+  <!--  water_controll_valve_02-->
+  <!--  pac_tube_pump_01-->
+  <!--  pac_tube_pump_02-->
+  <!--  pac_tube_pump_03-->
+  <!--  pahcs_tube_pump_01-->
+  <!--  pahcs_tube_pump_02-->
+  <!--  pahcs_tube_pump_03-->
+  <select id="waterAlarmAll" resultType="java.util.HashMap">
+    (
+        SELECT
+               water_controll_valve_id as id
+               , (volve_voltage_variance_alarm = 1 OR volve_overcurrent_alarm = 1) as Alarm
+               , acq_date
+        FROM
+             tb_diag_water_controll_valve
+        WHERE
+              acq_date =
+                           (
+                               SELECT
+                                      acq_date
+                               FROM
+                                    tb_diag_water_controll_valve
+                               WHERE
+                                     acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                               GROUP BY
+                                        acq_date
+                               ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+         ORDER BY
+             acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+                pac_tube_pump_id as id
+                , (pac_currnet_alarm = 1 OR diff_voltage_alarm = 1 OR overcurrent_alarm = 1) as Alarm
+                , acq_date
+        FROM
+              tb_diag_pac_tube_pump
+        WHERE
+                acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_diag_pac_tube_pump
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+        ORDER BY acq_date ASC)
+    UNION ALL
+    (
+        SELECT
+                pahcs_tube_pump_id as id
+                , (pahcs_currnet_alarm = 1 OR diff_voltage_alarm = 1 OR overcurrent_alarm = 1) as Alarm
+                , acq_date
+        FROM
+                tb_diag_pahcs_tube_pump
+        WHERE
+                acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_diag_pahcs_tube_pump
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                  acq_date ASC)
+  </select>
+
+  <!--  혼화/응집/침전-->
+  <!--  rapid_agitator_01-->
+  <!--  rapid_agitator_02-->
+  <!--  agglomerate_01 : 응집지2-->
+  <!--  agglomerate_02 : 응집지3-->
+  <!--  agglomerate_03 : 응집지4-->
+  <!--  agglomerate_04 : 응집지5-->
+  <!--  agglomerate_05 : 응집지6-->
+  <!--  agglomerate_06 : 응집지7-->
+  <!--  agglomerate_07 : 응집지8-->
+  <!--  agglomerate_08 : 응집지9-->
+  <!--  sludge_collector_01-->
+  <!--  sludge_collector_02-->
+  <select id="rapidAggloSludgeAlarmAll" resultType="java.util.HashMap">
+    (
+        SELECT
+               rapid_agitator_id as id
+               , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+               , acq_date
+        FROM
+               tb_diag_rapid_agitator
+        WHERE
+              acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_diag_rapid_agitator
+                            WHERE
+                                  acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+              agglomerate_id as id
+              , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1)  as Alarm
+              , acq_date
+        FROM
+              tb_diag_agglomerate
+        WHERE
+              acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_diag_agglomerate
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC)
+    UNION ALL
+    (
+        SELECT
+                sludge_collector_id as id
+                , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1)  as Alarm
+                , acq_date
+        FROM
+                tb_diag_sludge_collector
+        WHERE
+                acq_date =
+                              (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_sludge_collector
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1
+                              )
+        ORDER BY
+                acq_date ASC)
+  </select>
+
+  <!--  여과/GAC-->
+  <!--  filter_backwash_pump_01-->
+  <!--  filter_backwash_pump_02-->
+  <!--  filter_backwash_pump_03-->
+  <!--  filter_backwash_pump_04-->
+  <!--  gac_backwash_pump_01-->
+  <!--  gac_backwash_pump_02-->
+  <!--  gac_backwash_pump_03-->
+  <!--  backwash_blower_01-->
+  <!--  backwash_blower_02-->
+  <select id="filterAlarmAll" resultType="java.util.HashMap">
+    (
+          SELECT
+                 filter_backwash_pump_id as id
+                 , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                 , acq_date
+          FROM
+               tb_diag_filter_backwash_pump
+          WHERE
+                acq_date =
+                            (
+                                SELECT
+                                       acq_date
+                                FROM
+                                     tb_diag_filter_backwash_pump
+                                WHERE
+                                      acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                         acq_date
+                                ORDER BY
+                                         acq_date DESC LIMIT 0, 1)
+          ORDER BY
+                acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+                gac_backwash_pump_id as id
+                , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1)  as Alarm
+                , acq_date
+        FROM
+                tb_diag_gac_backwash_pump
+        WHERE
+                acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_diag_gac_backwash_pump
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC)
+    UNION ALL
+    (
+        SELECT
+                backwash_blower_id as id
+                , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1)  as Alarm
+                , acq_date
+        FROM
+                tb_diag_backwash_blower
+        WHERE
+                acq_date =
+                              (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_backwash_blower
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC)
+  </select>
+
+  <!--  (오존/소독) 오존발생기, 모티브펌프, 냉각수펌프, 차염발생기-->
+  <!--  motif_pump_01-->
+  <!--  motif_pump_02-->
+  <!--  motif_pump_03-->
+  <!--  motif_pump_04-->
+  <!--  cooling_pump_01-->
+  <!--  cooling_pump_02-->
+  <!--  cooling_pump_03-->
+  <!--  cooling_pump_04-->
+  <select id="ozoneAlarmAll" resultType="java.util.HashMap">
+    (
+        SELECT
+              motif_pump_id as id
+               , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+               , acq_date
+        FROM
+             tb_diag_motif_blower
+        WHERE
+              acq_date =
+                            (
+                                SELECT
+                                       acq_date
+                                FROM
+                                     tb_diag_motif_blower
+                                WHERE
+                                      acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                         acq_date
+                                ORDER BY
+                                         acq_date DESC LIMIT 0, 1)
+         ORDER BY
+                acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+                cooling_pump_id as id
+                , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1)  as Alarm
+                , acq_date
+        FROM
+              tb_diag_cooling_pump
+        WHERE
+              acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_diag_cooling_pump
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC)
+  </select>
+
+  <!--  (송수) 기동반, 변압기반, VCB 반-->
+  <!--  pump_board_01-->
+  <!--  pump_board_02-->
+  <!--  pump_board_03-->
+  <!--  pump_board_04-->
+  <!--  transformer_01-->
+  <!--  transformer_02-->
+  <!--  transformer_03-->
+  <!--  transformer_04-->
+  <!--  vcb_01-->
+  <!--  vcb_02-->
+  <!--  vcb_03-->
+  <!--  vcb_04-->
+  <!--  vcb_05-->
+  <!--  vcb_06-->
+  <select id="pumpAlarmAll" resultType="java.util.HashMap">
+    (
+        SELECT
+               pump_board_temp_id as id
+               , (samepart_fail = 1 OR ambienttemp_fail = 1 OR pps_fail = 1 OR dbm_fail = 1) as Alarm
+               , acq_date
+        FROM
+             tb_diag_pump_board_temp
+        WHERE
+              acq_date =
+                          (
+                              SELECT
+                                     acq_date
+                              FROM
+                                   tb_diag_pump_board_temp
+                              WHERE
+                                    acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                              GROUP BY
+                                       acq_date
+                              ORDER BY
+                                       acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC
+    )
+    UNION ALL
+    (
+        SELECT
+                transformer_id as id
+                , (samepart_fail = 1 OR ambienttemp_fail = 1 OR pps_fail = 1 OR dbm_fail = 1) as Alarm
+                , acq_date
+        FROM
+                tb_diag_transformer
+        WHERE
+                acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_diag_transformer
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC)
+    UNION ALL
+    (
+        SELECT
+                vcb_id as id
+                , (samepart_fail = 1 OR ambienttemp_fail = 1 OR pps_fail = 1 OR dbm_fail = 1) as Alarm
+                , acq_date
+        FROM
+                tb_diag_vcb
+        WHERE
+                acq_date =
+                            (
+                                SELECT
+                                        acq_date
+                                FROM
+                                        tb_diag_vcb
+                                WHERE
+                                        acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                GROUP BY
+                                        acq_date
+                                ORDER BY
+                                        acq_date DESC LIMIT 0, 1)
+        ORDER BY
+                acq_date ASC)
+  </select>
+
+  <!--  자율진단-->
+  <!--  송수펌프모터 펌프 부하, 반부하, 모터의 부하, 반부하 총진동값-->
+  <!--  motor_01-->
+  <!--  motor_02-->
+  <!--  motor_03-->
+  <!--  motor_04-->
+  <!--  motor_05 : 송산2번-->
+  <!--  motor_06 : 송산1번-->
+  <select id="motorDataAll" resultType="java.util.HashMap">
+    SELECT
+           m.moter_id,
+           m.acq_date,
+           m.DE_rms_amp  as motor_de_rms_amp,
+           m.NDE_rms_amp as motor_nde_rms_amp,
+           p.DE_rms_amp  as pump_de_rms_amp,
+           p.NDE_rms_amp as pump_nde_rms_amp
+    FROM
+          tb_ai_diag_moter as m
+    LEFT JOIN
+              tb_ai_diag_pump as p on m.moter_id = p.pump_id
+                                          and
+                                      m.acq_date = p.acq_date
+    WHERE
+          m.acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_ai_diag_moter
+                            WHERE
+                                  acq_date >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 0, 1)
+    ORDER BY
+            m.acq_date ASC
+  </select>
+
+  <!--  송수펌프모터 베어링 온도-->
+  <!--  pump_scada_01-->
+  <!--  pump_scada_02-->
+  <!--  pump_scada_03-->
+  <!--  pump_scada_04-->
+  <!--  pump_scada_05 : 송산1번-->
+  <!--  pump_scada_06 : 송산2번-->
+  <select id="pumpBearingTempAll" resultType="java.util.HashMap">
+    SELECT
+           pump_scada_id,
+           brg_motor_de_temp,
+           brg_motor_nde_temp,
+           brg_pump_de_temp,
+           brg_pump_nde_temp,
+           acq_date
+    FROM
+         tb_pump_scada
+    WHERE
+          acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_pump_scada
+                            WHERE
+                                  acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 0, 1)
+  </select>
+
+  <!--  송수펌프모터 알람-->
+  <!--  motor_01-->
+  <!--  motor_02-->
+  <!--  motor_03-->
+  <!--  motor_04-->
+  <!--  motor_05 : 송산2번-->
+  <!--  motor_06 : 송산1번-->
+  <select id="motorAlarm" resultType="java.util.HashMap">
+    SELECT
+           m.moter_id,
+               (
+                   m.unbalance_alarm = 1
+                      or
+                   m.misalignment_alarm = 1
+                      or
+                   m.rotor_alarm = 1
+                      or
+                   m.de_bpfo_alarm = 1
+                      or
+                   m.DE_BPFI_alarm = 1
+                      or
+                   m.DE_BSF_alarm = 1
+                      or
+                   m.DE_FTF_alarm = 1
+                      or
+                   m.NDE_BPFO_alarm = 1
+                      or
+                   m.NDE_BPFI_alarm = 1
+                      or
+                   m.NDE_BSF_alarm = 1
+                      or
+                   m.NDE_FTF_alarm = 1
+                      or
+                   p.impeller_alarm = 1
+                      or
+                   p.cavitation_alarm = 1
+                      or
+                   p.de_bpfo_alarm = 1
+                      or
+                   p.DE_BPFI_alarm = 1
+                      or
+                   p.DE_BSF_alarm = 1
+                      or
+                   p.DE_FTF_alarm = 1
+                      or
+                   p.NDE_BPFO_alarm = 1
+                      or
+                   p.NDE_BPFI_alarm = 1
+                      or
+                   p.NDE_BSF_alarm = 1
+                      or
+                   p.NDE_FTF_alarm
+               ) as Alram
+           , m.acq_date
+    FROM
+             tb_ai_diag_moter as m
+    LEFT JOIN
+             tb_ai_diag_pump as p
+                 on
+                     m.moter_id = p.pump_id
+                         and
+                     m.acq_date = p.acq_date
+    WHERE
+          m.acq_date = (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_ai_diag_moter
+                            WHERE
+                                  acq_date >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 0, 1)
+    ORDER BY
+            m.acq_date DESC
+  </select>
+
+  <!--  모든 설비의 알람-->
+  <select id="alarmDataAll" resultType="java.util.HashMap">
+    (
+          (
+                SELECT
+                       water_controll_valve_id as id
+                       , (volve_voltage_variance_alarm = 1 OR volve_overcurrent_alarm = 1) as Alarm
+                       , acq_date
+                FROM
+                     tb_diag_water_controll_valve
+
+                WHERE
+                     acq_date =
+                                    (
+                                        SELECT
+                                                 acq_date
+                                        FROM
+                                                 tb_diag_water_controll_valve
+                                        WHERE
+                                                 acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                        GROUP BY
+                                                 acq_date
+                                        ORDER BY
+                                                 acq_date DESC LIMIT 0, 1)
+            ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                     pac_tube_pump_id as id
+                     , (pac_currnet_alarm = 1 OR diff_voltage_alarm = 1 OR overcurrent_alarm = 1) as Alarm
+                     , acq_date
+              FROM
+                   tb_diag_pac_tube_pump
+              WHERE
+                    acq_date =
+                                   (
+                                        SELECT
+                                                 acq_date
+                                        FROM
+                                                 tb_diag_pac_tube_pump
+                                        WHERE
+                                                 acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                        GROUP BY
+                                                 acq_date
+                                        ORDER BY
+                                                 acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                       acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                    pahcs_tube_pump_id as id
+                    , (pahcs_currnet_alarm = 1 OR diff_voltage_alarm = 1 OR overcurrent_alarm = 1) as Alarm
+                    , acq_date
+              FROM
+                    tb_diag_pahcs_tube_pump
+              WHERE
+                    acq_date =
+                                  (
+                                        SELECT acq_date FROM tb_diag_pahcs_tube_pump WHERE acq_date >= DATE_SUB(NOW()
+                                , INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0
+                                , 1)
+              ORDER BY acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                    rapid_agitator_id as id
+                    , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                    , acq_date
+              FROM
+                    tb_diag_rapid_agitator
+              WHERE
+                    acq_date =
+                                (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_rapid_agitator
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                        agglomerate_id as id
+                        , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                        , acq_date
+              FROM
+                        tb_diag_agglomerate
+              WHERE
+                        acq_date =
+                                        (
+                                            SELECT
+                                                    acq_date
+                                            FROM
+                                                    tb_diag_agglomerate
+                                            WHERE
+                                                    acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                            GROUP BY
+                                                    acq_date
+                                            ORDER BY
+                                                    acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                        sludge_collector_id as id
+                        , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                        , acq_date
+              FROM
+                        tb_diag_sludge_collector
+              WHERE
+                        acq_date =
+                                    (
+                                        SELECT
+                                                acq_date
+                                        FROM
+                                                tb_diag_sludge_collector
+                                        WHERE
+                                                acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                        GROUP BY
+                                                acq_date
+                                        ORDER BY
+                                                acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                        filter_backwash_pump_id as id
+                        , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                        , acq_date
+              FROM
+                        tb_diag_filter_backwash_pump
+              WHERE
+                        acq_date =
+                                    (
+                                          SELECT
+                                                acq_date
+                                          FROM
+                                                tb_diag_filter_backwash_pump
+                                          WHERE
+                                                acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                          GROUP BY
+                                                    acq_date
+                                          ORDER BY
+                                                    acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                    gac_backwash_pump_id as id
+                    , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                    , acq_date
+              FROM
+                    tb_diag_gac_backwash_pump
+              WHERE
+                    acq_date =
+                                (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_gac_backwash_pump
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                        backwash_blower_id as id
+                        , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                        , acq_date
+              FROM
+                        tb_diag_backwash_blower
+              WHERE
+                        acq_date =
+                                      (
+                                            SELECT
+                                                    acq_date
+                                            FROM
+                                                    tb_diag_backwash_blower
+                                            WHERE
+                                                    acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                            GROUP BY
+                                                    acq_date
+                                            ORDER BY
+                                                    acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                        motif_pump_id as id
+                        , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                        , acq_date
+              FROM
+                        tb_diag_motif_blower
+              WHERE
+                        acq_date =
+                                    (
+                                        SELECT
+                                                acq_date
+                                        FROM
+                                                tb_diag_motif_blower
+                                        WHERE
+                                                acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                        GROUP BY
+                                                acq_date
+                                        ORDER BY
+                                                acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                        cooling_pump_id as id
+                        , (voltage_unbalance_alarm = 1 OR voltage_diff_alarm = 1 OR overcurrent_alarm = 1 OR current_unbalance_alarm = 1) as Alarm
+                        , acq_date
+              FROM
+                    tb_diag_cooling_pump
+              WHERE
+                    acq_date =
+                                (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_cooling_pump
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                    pump_board_temp_id as id
+                    , (samepart_fail = 1 OR ambienttemp_fail = 1 OR pps_fail = 1 OR dbm_fail = 1) as Alarm
+                    , acq_date
+              FROM
+                    tb_diag_pump_board_temp
+              WHERE
+                    acq_date =
+                                (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_pump_board_temp
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                    transformer_id as id
+                    , (samepart_fail = 1 OR ambienttemp_fail = 1 OR pps_fail = 1 OR dbm_fail = 1) as Alarm
+                    , acq_date
+              FROM
+                    tb_diag_transformer
+              WHERE
+                    acq_date =
+                                (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_transformer
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                    vcb_id as id
+                    , (samepart_fail = 1 OR ambienttemp_fail = 1 OR pps_fail = 1 OR dbm_fail = 1) as Alarm
+                    , acq_date
+              FROM
+                    tb_diag_vcb
+              WHERE
+                    acq_date =
+                                (
+                                    SELECT
+                                            acq_date
+                                    FROM
+                                            tb_diag_vcb
+                                    WHERE
+                                            acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                                    GROUP BY
+                                            acq_date
+                                    ORDER BY
+                                            acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        acq_date ASC
+          )
+          UNION ALL
+          (
+              SELECT
+                m.moter_id as id
+                , (
+                      m.unbalance_alarm = 1
+                              or
+                      m.misalignment_alarm = 1
+                              or
+                      m.rotor_alarm = 1
+                              or
+                      m.de_bpfo_alarm = 1
+                              or
+                      m.DE_BPFI_alarm = 1
+                              or
+                      m.DE_BSF_alarm = 1
+                              or
+                      m.DE_FTF_alarm = 1
+                              or
+                      m.NDE_BPFO_alarm = 1
+                              or
+                      m.NDE_BPFI_alarm = 1
+                              or
+                      m.NDE_BSF_alarm = 1
+                               or
+                      m.NDE_FTF_alarm = 1
+                               or
+                      p.impeller_alarm = 1
+                              or
+                      p.cavitation_alarm = 1
+                              or
+                      p.de_bpfo_alarm = 1
+                              or
+                      p.DE_BPFI_alarm = 1
+                              or
+                      p.DE_BSF_alarm = 1
+                              or
+                      p.DE_FTF_alarm = 1
+                              or
+                      p.NDE_BPFO_alarm = 1
+                              or
+                      p.NDE_BPFI_alarm = 1
+                              or
+                      p.NDE_BSF_alarm = 1
+                              or
+                      p.NDE_FTF_alarm
+                  ) as Alram
+                , m.acq_date
+              FROM
+                    tb_ai_diag_moter as m
+              LEFT JOIN
+                        tb_ai_diag_pump as p on
+                            m.moter_id = p.pump_id
+                                and
+                            m.acq_date = p.acq_date
+              WHERE
+                        m.acq_date =
+                                        (
+                                              SELECT
+                                                    acq_date
+                                              FROM
+                                                    tb_ai_diag_moter
+                                              WHERE
+                                                    acq_date >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+                                              GROUP BY
+                                                    acq_date
+                                              ORDER BY
+                                                    acq_date DESC LIMIT 0, 1)
+              ORDER BY
+                        m.acq_date DESC
+          )
+    )
+  </select>
+
+  <select id="operationAll" resultType="java.util.HashMap">
+      ((SELECT water_controll_valve_id as id, eq_open > 1 as eq_on, acq_date
+        FROM tb_water_controll_valve
+        WHERE acq_date = (SELECT acq_date
+                          FROM tb_water_controll_valve
+                          WHERE acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                          GROUP BY acq_date
+                          ORDER BY acq_date DESC
+            LIMIT 0
+            , 1)
+          ORDER BY acq_date ASC)
+      UNION ALL
+      (SELECT pac_tube_pump_id as id, eq_on, acq_date
+       FROM tb_pac_tube_pump
+       WHERE acq_date = (SELECT acq_date
+                         FROM tb_pac_tube_pump
+                         WHERE acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                         GROUP BY acq_date
+                         ORDER BY acq_date DESC
+           LIMIT 0
+           , 1)
+      ORDER BY acq_date ASC )
+      UNION ALL
+      (
+      SELECT pahcs_tube_pump_id as id, eq_on, acq_date
+      FROM tb_pahcs_tube_pump
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_pahcs_tube_pump
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT auto_water_pump_id as id, eq_on, acq_date
+      FROM tb_auto_water_pump
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_auto_water_pump
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT rapid_agitator_id as id, eq_on, acq_date
+      FROM tb_rapid_agitator
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_rapid_agitator
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT agglomerate_eq_id as id, eq_on, acq_date
+      FROM tb_agglomerate_eq
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_agglomerate_eq
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT sludge_collector_eq_id as id, (forward = TRUE OR backward = TRUE) as eq_on, acq_date
+      FROM tb_sludge_collector_eq
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_sludge_collector_eq
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT filter_backwash_pump_id as id, eq_on, acq_date
+      FROM tb_filter_backwash_pump
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_filter_backwash_pump
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT gac_backwash_pump_id as id, eq_on, acq_date
+      FROM tb_gac_backwash_pump
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_gac_backwash_pump
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT backwash_blower_id as id, eq_on, acq_date
+      FROM tb_backwash_blower
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_backwash_blower
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT motif_pump_id as id, eq_on, acq_date
+      FROM tb_motif_pump
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_motif_pump
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT cooling_pump_id as id, eq_on, acq_date
+      FROM tb_cooling_pump
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_cooling_pump
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT pump_board_temp_id as id, eq_on, acq_date
+      FROM tb_pump_board_temp
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_pump_board_temp
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT transformer_id as id, eq_on, acq_date
+      FROM tb_transformer
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_transformer
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT vcb_id as id, (eq_on = TRUE OR eq_off = TRUE) as eq_on, acq_date
+      FROM tb_vcb
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_vcb
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC)
+      UNION ALL
+      (
+      SELECT pump_scada_id as id, eq_on, acq_date
+      FROM tb_pump_scada
+      WHERE acq_date = (SELECT acq_date
+                        FROM tb_pump_scada
+                        WHERE acq_date >= DATE_SUB(NOW()
+                        , INTERVAL 3 MINUTE)
+                        GROUP BY acq_date
+                        ORDER BY acq_date DESC
+                        LIMIT 0
+                        , 1)
+      ORDER BY acq_date ASC))
+  </select>
+</mapper>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wapplab.pms.repository.PahcsTubeMapper">
+<!--  pahcs_tube_pump_01 pahcs 1번-->
+<!--  pahcs_tube_pump_02 pahcs 2번-->
+<!--  pahcs_tube_pump_02 pahcs 3번-->
+<!--  설비별 알람-->
+<!--  알람이 있는 설비만 검색(위의 pahcs_tube_pump id 참조), 검색안된 설비는 정상-->
+  <select id="alarm" resultType="java.util.HashMap">
+    SELECT
+           pahcs_tube_pump_id
+         , TRUE as Alram
+    FROM
+         tb_diag_pahcs_tube_pump
+    WHERE
+          (
+              pahcs_currnet_alarm = 1
+                  OR
+              diff_voltage_alarm = 1
+                  OR
+              overcurrent_alarm = 1
+          )
+            AND
+          acq_date >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    ORDER BY
+             acq_date DESC;
+  </select>
+
+<!--  가동중, 운영현황 조회, 상태정보-->
+<!--  flowppm-->
+  <select id="pahcsTubeInfo" resultType="java.util.HashMap">
+    SELECT
+           pahcs_tube_pump_id
+         , eq_on
+         , flowmeter
+         , flowppm
+    FROM
+         tb_pahcs_tube_pump
+    WHERE
+          acq_date =
+                    (
+                        SELECT
+                               acq_date
+                        FROM
+                             tb_pahcs_tube_pump
+                        GROUP BY
+                                 acq_date
+                        ORDER BY
+                                 acq_date DESC LIMIT 1
+                    , 1)
+  </select>
+
+<!--  전류 조회 모든 pac pump-->
+  <select id="currentInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           pahcs_tube_pump_id
+         , current
+         , acq_date
+    FROM
+        tb_diag_pahcs_tube_pump
+    WHERE
+           acq_date >= #{startDate}
+        and
+           acq_date <= #{endDate}
+    ]]>
+  </select>
+
+<!--  상세 조회 모든 pac pump-->
+<!--  current : 과전류-->
+<!--  diff_voltage : 전압변동량-->
+<!--  pac_ch_single_i : 주입량 고려 전류-->
+  <select id="detailInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           pahcs_tube_pump_id
+         , current
+         , diff_voltage
+         , pahcs_ch_single_i
+         , acq_date
+    FROM
+        tb_diag_pahcs_tube_pump
+    WHERE
+          acq_date >= #{startDate}
+        and
+          acq_date <= #{endDate}
+    ]]>
+  </select>
+</mapper>

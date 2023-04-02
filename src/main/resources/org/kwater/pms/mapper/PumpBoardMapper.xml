@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wapplab.pms.repository.PumpBoardMapper">
+<!--  pump_board_01-->
+<!--  pump_board_02-->
+<!--  pump_board_03-->
+<!--  pump_board_04-->
+
+<!--  임계값 같은경우-->
+<!--  부분방전크기 -15-->
+<!--  초당 부분방전 펄스 수 1501-->
+<!--  설비별 알람-->
+<!--  알람이 있는 설비만 검색(위의 pump_board_01 id 참조), 검색안된 설비는 정상-->
+  <select id="alarm" resultType="java.util.Map">
+    SELECT
+           pump_board_temp_id
+         , TRUE as Alram
+    FROM
+         tb_diag_pump_board_temp
+    WHERE
+          (
+              samepart_fail = 1
+                  OR
+              ambienttemp_fail = 1
+                  OR
+              pps_fail = 1
+                  OR
+              dbm_fail = 1
+          )
+          AND
+          acq_date >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    ORDER BY
+             acq_date DESC;
+  </select>
+
+<!--  가동중-->
+<!--  펌프기동반 가동대수-->
+  <select id="count" resultType="java.util.Map">
+    SELECT
+           count(eq_on) as eq_on
+    FROM
+         tb_pump_board_temp
+    WHERE
+          acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_pump_board_temp
+                            WHERE
+                                  acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 1
+                        , 1)
+          AND
+          eq_on = TRUE
+  </select>
+
+<!--  부분방전 크기 조회-->
+<!--  dbm_avg : 부분방전 크기-->
+  <select id="disCharge" resultType="java.util.Map">
+    SELECT
+           pump_board_temp_id
+         , dbm_avg
+         , acq_date
+    FROM
+         tb_pump_board_temp
+    WHERE
+          acq_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+  </select>
+
+<!--  상태정보 온도-->
+  <select id="info" resultType="java.util.Map">
+    SELECT
+           pump_board_temp_id
+         , eq_on
+         , temp_1
+         , temp_2
+         , temp_3
+         , temp_4
+         , temp_5
+         , temp_6
+         , temp_7
+         , temp_8
+         , temp_9
+         , temp_10
+         , temp_11
+         , temp_12
+         , temp_13
+         , temp_14
+         , temp_15
+         , temp_16
+         , temp_17
+         , temp_18
+         , temp_19
+         , temp_20
+    FROM
+         tb_pump_board_temp
+    WHERE
+          acq_date =
+                        (
+                            SELECT
+                                   acq_date
+                            FROM
+                                 tb_pump_board_temp
+                            WHERE
+                                  acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                            GROUP BY
+                                     acq_date
+                            ORDER BY
+                                     acq_date DESC LIMIT 1
+                        , 1)
+          AND
+                eq_on = TRUE
+  </select>
+
+<!--  상세 조회 모든 펌프기동반-->
+<!--  dbm : 부분방전 크기-->
+<!--  pps : 부분방전 펄스-->
+<!--  max_in : 내부온도 크기-->
+<!--  max_out : 외부온도 크기-->
+  <select id="detailInfo" resultType="java.util.Map">
+    <![CDATA[
+    SELECT
+           pump_board_temp_id
+         , dbm
+         , pps
+         , max_in
+         , max_out
+         , acq_date
+    FROM
+         tb_diag_pump_board_temp
+    WHERE
+          acq_date >= #{startDate}
+            and
+          acq_date <= #{endDate}
+    ]]>
+  </select>
+</mapper>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wapplab.pms.repository.MotifPumpMapper">
+<!--  motif_pump_01-->
+<!--  motif_pump_02-->
+<!--  motif_pump_03-->
+<!--  motif_pump_04-->
+<!--  설비별 알람-->
+<!--  알람이 있는 설비만 검색, 검색안된 설비는 정상-->
+  <select id="alarm" resultType="java.util.HashMap">
+    SELECT
+           motif_pump_id
+         , TRUE as Alram
+    FROM
+         tb_diag_motif_blower
+    WHERE
+          (
+              voltage_unbalance_alarm = 1
+                  OR
+              voltage_diff_alarm = 1
+                  OR
+              overcurrent_alarm = 1
+                  OR
+              current_unbalance_alarm = 1
+          )
+    AND
+          acq_date >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    ORDER BY
+             acq_date DESC;
+  </select>
+
+<!--  가동중, 운영현황 조회, 상태정보-->
+  <select id="motifPumpInfo" resultType="java.util.HashMap">
+    SELECT
+           motif_pump_id
+         , eq_on
+    FROM
+         tb_motif_pump
+    WHERE
+          acq_date =
+                    (
+                        SELECT
+                               acq_date
+                        FROM
+                             tb_motif_pump
+                        GROUP BY
+                                 acq_date
+                        ORDER BY
+                                 acq_date DESC LIMIT 1
+                    , 1)
+  </select>
+
+<!--  가동대수-->
+  <select id="count" resultType="java.util.HashMap">
+    SELECT
+           count(eq_on) as eq_on
+    FROM
+         tb_motif_pump
+    WHERE
+          acq_date =
+                    (
+                        SELECT
+                               acq_date
+                        FROM
+                             tb_motif_pump
+                        GROUP BY
+                                 acq_date
+                        ORDER BY
+                                 acq_date DESC LIMIT 1
+                    , 1)
+    AND eq_on = TRUE
+  </select>
+
+<!--  전류 조회-->
+  <select id="currentInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           motif_pump_id
+         , GREATEST(
+               if(r_v_electric_current is not null, r_v_electric_current, 0)
+             , if(s_v_electric_current is not null, s_v_electric_current, 0)
+             , if(t_v_electric_current is not null, t_v_electric_current, 0)
+         ) as current
+         , acq_date
+    FROM
+        tb_motif_pump
+    WHERE
+        acq_date >= #{startDate} and acq_date <= #{endDate}
+    ]]>
+  </select>
+
+<!--  상세 조회 모든 pac pump-->
+<!--  current_limit : 과전류-->
+<!--  voltage_diff : 전압변동량-->
+<!--  current_unbalance : 전류불평형-->
+<!--  voltage_unbalance : 전압불평형-->
+  <select id="detailInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           motif_pump_id
+         , current_limit
+         , voltage_diff
+         , current_unbalance
+         , voltage_unbalance
+         , acq_date
+    FROM
+         tb_diag_motif_blower
+    WHERE
+          acq_date >= #{startDate}
+      and
+          acq_date <= #{endDate}
+    ]]>
+  </select>
+</mapper>

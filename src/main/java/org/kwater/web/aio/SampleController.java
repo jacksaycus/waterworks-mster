@@ -1,15 +1,8 @@
 package org.kwater.web.aio;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.kwater.domain.aio.AiProcessInitDTO;
-import org.kwater.domain.aio.AiReceivingRealtimeDTO;
-import org.kwater.domain.aio.ProcessRealtimeDTO;
-import org.kwater.domain.aio.TagManageDTO;
 import org.kwater.utils.aio.CommonValue;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -21,16 +14,16 @@ import java.util.*;
 
 @RestController
 @Slf4j
-public class DashboardController {
+public class SampleController {
 
     private DatabaseService databaseService;
-    public DashboardController(DatabaseService databaseService) {
+    public SampleController(DatabaseService databaseService) {
         this.databaseService = databaseService;
     }
 
     // 착수 공정 최근 데이터 조회
-    @RequestMapping(value = "/receiving/latest", method = RequestMethod.GET)
-    public ResponseEntity<String> getLatestReceiving()
+    @RequestMapping(value = "/receiving/latestsample", method = RequestMethod.GET)
+    public ResponseEntity<String> getLatestReceivingsample()
     {
         log.info("Recv getLatestReceiving");
 

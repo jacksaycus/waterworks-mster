@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wapplab.pms.repository.WaterControlValveMapper">
+
+  <!--
+  - water_controll_valve_01 - 착수 1번
+  - water_controll_valve_02 - 착수 2번-->
+
+
+  <!-- 알람-->
+  <select id="alarm" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           water_controll_valve_id,
+           TRUE as Alram
+    FROM
+         tb_diag_water_controll_valve
+    WHERE
+          acq_date >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    AND (
+             volve_voltage_variance_alarm = 1
+             OR volve_overcurrent_alarm = 1
+        )
+    ORDER BY acq_date DESC
+    ]]>
+  </select>
+
+<!--  개폐여부 개도 : eq_open-->
+<!--  가동여부 : 0이상이면 가동-->
+<!--  상태정보 개도 : eq_open-->
+  <select id="eqOpen" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           water_controll_valve_id
+         , eq_open
+    FROM
+         tb_water_controll_valve
+    WHERE
+          acq_date >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    ORDER BY
+             acq_date DESC
+    ]]>
+  </select>
+
+<!-- 전류 그래프 기간조회-->
+  <select id="currentGraph" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           water_controll_valve_id
+         , electric_current
+         , acq_date
+    FROM
+         tb_water_controll_valve
+    WHERE
+          acq_date >= #{startDate}
+          and
+          acq_date <= #{endDate}
+          and
+          water_controll_valve_id = #{id}
+    ORDER BY acq_date ASC
+    ]]>
+  </select>
+
+<!--  상태정보-->
+<!--  둘중에 하나라도 1이면 이상상태-->
+  <select id="statusInfo" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT water_controll_valve_id
+         , volve_voltage_variance_alarm
+         , volve_overcurrent_alarm
+    FROM
+         tb_diag_water_controll_valve
+    WHERE
+          acq_date >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    ORDER BY acq_date DESC
+    ]]>
+  </select>
+
+<!--  과전류 그래프 기간조회-->
+  <select id="overCurrentGraph" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           water_controll_valve_id
+         , current
+         , acq_date
+    FROM
+        tb_diag_water_controll_valve
+    WHERE
+        acq_date >= #{startDate}
+        and
+        acq_date <= #{endDate}
+        and
+        water_controll_valve_id = #{id}
+    ORDER BY acq_date ASC
+    ]]>
+  </select>
+
+<!--  전압변동량 그래프 기간조회-->
+  <select id="voltageFluctuationGraph" resultType="java.util.HashMap">
+    <![CDATA[
+    SELECT
+           water_controll_valve_id
+         , volve_voltage_variance
+         , acq_date
+    FROM
+         tb_diag_water_controll_valve
+    WHERE
+        acq_date >= #{startDate}
+        and
+        acq_date <= #{endDate}
+        and
+        water_controll_valve_id = #{id}
+    ORDER BY acq_date ASC
+    ]]>
+  </select>
+
+  <select id="currentAndOpen" resultType="java.util.HashMap">
+    SELECT
+           water_controll_valve_id
+         , electric_current
+         , eq_open
+         , acq_date
+    FROM tb_water_controll_valve
+    WHERE acq_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY acq_date ASC
+  </select>
+
+<!--  유량 순시,적시, 압력 -->
+<!--  flow_instantaneous : 유량 순시-->
+<!--  flow_intergration : 유량 적시-->
+<!--  flow_press : 유량 압력-->
+  <select id="flow" resultType="java.util.HashMap">
+    SELECT
+           water_controll_valve_id
+         , flow_instantaneous
+         , flow_intergration
+         , flow_press
+    FROM
+         tb_water_controll_valve
+    WHERE
+          acq_date =
+                        (
+                              SELECT
+                                      acq_date
+                              FROM
+                                   tb_water_controll_valve
+                              WHERE
+                                    acq_date >= DATE_SUB(NOW(), INTERVAL 3 MINUTE) GROUP BY acq_date ORDER BY acq_date DESC LIMIT 0, 1)
+    ORDER BY acq_date DESC
+  </select>
+
+</mapper>
